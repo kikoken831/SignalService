@@ -23,6 +23,19 @@ if ! grep -q "vcrun2019" /opt/wineprefix/winetricks.log 2>/dev/null; then
   winetricks --unattended vcrun2019
 fi
 
+# install mt5 if not installed yet
+if [ ! -f "/opt/wineprefix/drive_c/Program Files/MetaTrader 5/terminal64.exe" ]; then
+  curl -L -o mt5setup.exe https://download.mql5.com/cdn/web/metaquotes.ltd/mt5/mt5setup.exe
+  wine mt5setup.exe
+  wine taskkill /IM "terminal64.exe" /F
+fi
+
+# open mt5
+cd "/opt/wineprefix/drive_c/Program Files/MetaTrader 5"
+wine terminal64.exe &
+echo "Waiting 15s for MT5 to start..."
+sleep 15
+
 # prevent container termination
 while true
 do
