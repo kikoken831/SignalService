@@ -1,4 +1,5 @@
 # based on tobix/pywine image - https://hub.docker.com/r/tobix/pywine
+# change image tag to latest to follow webcomics updates - https://github.com/webcomics/pywine
 FROM hpdeandrade/pywine-staging:3.14
 
 WORKDIR /mt5docker
@@ -15,3 +16,8 @@ COPY requirements.txt ./
 RUN curl -L -o winetricks https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks && \
     chmod +x winetricks && \
     mv winetricks /usr/bin/
+
+COPY start.sh mt5cfg.ini ./
+RUN chmod +x ./start.sh
+
+ENTRYPOINT ["./start.sh"]
