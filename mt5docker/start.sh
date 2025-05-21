@@ -31,9 +31,16 @@ if [ ! -f "/opt/wineprefix/drive_c/Program Files/MetaTrader 5/terminal64.exe" ];
 fi
 
 # open mt5
+mv "/mt5docker/mt5cfg.ini" "/opt/wineprefix/drive_c/Program Files/MetaTrader 5"
 cd "/opt/wineprefix/drive_c/Program Files/MetaTrader 5"
-wine terminal64.exe &
-echo "Waiting 15s for MT5 to start..."
+wine terminal64.exe /config:mt5cfg.ini &
+echo "Waiting 15s for MT5 Windows to instantiate..."
+sleep 15
+
+# open mt5 linux
+cd /mt5docker
+wine python -m pymt5linux --host $MT5_HOST --port 8001 C:/Python/python.exe &
+echo "Waiting 15s for MT5 Linux to instantiate..."
 sleep 15
 
 # prevent container termination
