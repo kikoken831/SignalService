@@ -1,4 +1,4 @@
-# based on tobix/pywine image - https://hub.docker.com/r/tobix/pywine
+# below image is based on tobix/pywine image - https://hub.docker.com/r/tobix/pywine
 # change image tag to latest to follow webcomics updates - https://github.com/webcomics/pywine
 FROM hpdeandrade/pywine-staging:3.14
 
@@ -17,7 +17,7 @@ RUN curl -L -o winetricks https://raw.githubusercontent.com/Winetricks/winetrick
     chmod +x winetricks && \
     mv winetricks /usr/bin/
 
-COPY start.sh mt5cfg.ini ./
+COPY start.sh mt5cfg.ini tests ./
 RUN chmod +x ./start.sh
 
 ENTRYPOINT ["./start.sh"]
