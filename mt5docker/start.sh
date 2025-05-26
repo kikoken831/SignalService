@@ -43,6 +43,14 @@ wine python -m pymt5linux --host $MT5_HOST --port 8001 C:/Python/python.exe &
 echo "Waiting 15s for MT5 Linux to instantiate..."
 sleep 15
 
+# test connection when container starts up
+if [ ! -f "/tmp/firstrun.flag" ]; then
+  echo "Testing connection..."
+  cd "/mt5docker/tests"
+  wine python test_connection.py
+  touch /tmp/firstrun.flag
+fi
+
 # prevent container termination
 while true
 do
