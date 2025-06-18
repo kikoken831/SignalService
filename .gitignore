@@ -2,5 +2,10 @@
 *.env.local
 __pycache__/
 *.py[cod]
+*$py.class
+.vscode/
+.idea/
+*.swp
 .DS_Store
 Thumbs.db
+mt5_data/
