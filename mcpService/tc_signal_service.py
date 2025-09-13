@@ -71,3 +71,39 @@ def mask_token_in_url(url: str) -> str:
     return urllib.parse.urlunparse(
         (parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment)
     )
+
+
+def http_json(
+    url: str,
+    method: str = "GET",
+    body: Optional[Dict[str, Any]] = None,
+    headers: Optional[Dict[str, str]] = None,
+    timeout: int = 30,
+) -> Tuple[int, Dict[str, str], Any]:
+    data = None
+    final_headers = headers.copy() if headers else {}
+
+    if body is not None:
+        data = json.dumps(body).encode("utf-8")
+        final_headers.setdefault("Content-Type", "application/json")
+
+    request = urllib.request.Request(
+        url=url, data=data, method=method, headers=final_headers,
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            raw = response.read().decode("utf-8", errors="replace")
+            response_headers = {k.lower(): v for k, v in response.headers.items()}
+            if not raw.strip():
+                return response.status, response_headers, None
+            return response.status, response_headers, parse_json_loose(raw)
+
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        safe_url = mask_token_in_url(url)
+        raise RuntimeError(f"HTTP {exc.code} from {safe_url}: {raw}") from exc
+
+    except urllib.error.URLError as exc:
+        safe_url = mask_token_in_url(url)
+        raise RuntimeError(f"Network error calling {safe_url}: {exc}") from exc
