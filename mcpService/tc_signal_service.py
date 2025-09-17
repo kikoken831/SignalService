@@ -107,3 +107,44 @@ def http_json(
     except urllib.error.URLError as exc:
         safe_url = mask_token_in_url(url)
         raise RuntimeError(f"Network error calling {safe_url}: {exc}") from exc
+
+
+class MCPClient:
+    def __init__(self, base_url: str, token: str, timeout: int = 30) -> None:
+        self.base_url = base_url.strip()
+        self.token = token.strip()
+        self.timeout = timeout
+        self.session_id: Optional[str] = None
+        self._request_id = 0
+        self.url = self._build_url_with_token(self.base_url, self.token)
+
+    def _build_url_with_token(self, base_url: str, token: str) -> str:
+        parsed = urllib.parse.urlparse(base_url)
+        query = dict(urllib.parse.parse_qsl(parsed.query, keep_blank_values=True))
+        existing_token = query.get("token", "").strip()
+        supplied_token = token.strip()
+
+        if supplied_token and supplied_token != "PASTE_YOUR_TOKEN_HERE":
+            query["token"] = supplied_token
+        elif existing_token:
+            pass
+        else:
+            raise RuntimeError("Missing Trading Central MCP token. Set TC_MCP_TOKEN.")
+
+        new_query = urllib.parse.urlencode(query)
+        return urllib.parse.urlunparse(
+            (parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment)
+        )
+
+    def _next_id(self) -> int:
+        self._request_id += 1
+        return self._request_id
+
+    def _headers(self) -> Dict[str, str]:
+        headers = {
+            "Accept": "application/json, text/event-stream",
+            "Content-Type": "application/json",
+        }
+        if self.session_id:
+            headers["Mcp-Session-Id"] = self.session_id
+        return headers
