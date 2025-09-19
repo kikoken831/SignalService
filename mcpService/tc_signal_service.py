@@ -148,3 +148,20 @@ class MCPClient:
         if self.session_id:
             headers["Mcp-Session-Id"] = self.session_id
         return headers
+
+def _post_jsonrpc(self, payload: Dict[str, Any], expect_response: bool = True) -> Any:
+    status, headers, response = http_json(
+        self.url, method="POST", body=payload,
+        headers=self._headers(), timeout=self.timeout,
+    )
+    session_id = headers.get("mcp-session-id")
+    if session_id:
+        self.session_id = session_id
+
+    if not expect_response:
+        return None
+    if response is None:
+        raise RuntimeError("Empty MCP response")
+    if isinstance(response, dict) and response.get("error"):
+        raise RuntimeError(f"MCP error: {response['error']}")
+    return response
