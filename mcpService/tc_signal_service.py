@@ -165,3 +165,27 @@ def _post_jsonrpc(self, payload: Dict[str, Any], expect_response: bool = True) -
     if isinstance(response, dict) and response.get("error"):
         raise RuntimeError(f"MCP error: {response['error']}")
     return response
+
+def initialize(self) -> None:
+    import logging
+    payload = {
+        "jsonrpc": "2.0",
+        "id": self._next_id(),
+        "method": "initialize",
+        "params": {
+            "protocolVersion": MCP_PROTOCOL_VERSION,
+            "capabilities": {},
+            "clientInfo": {"name": "tc-hourly-signal-service", "version": "1.0.0"},
+        },
+    }
+    self._post_jsonrpc(payload, expect_response=True)
+
+    notification = {
+        "jsonrpc": "2.0",
+        "method": "notifications/initialized",
+        "params": {},
+    }
+    try:
+        self._post_jsonrpc(notification, expect_response=False)
+    except Exception as exc:
+        logging.debug("MCP initialized notification ignored: %s", exc)
