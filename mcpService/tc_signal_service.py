@@ -189,3 +189,49 @@ def initialize(self) -> None:
         self._post_jsonrpc(notification, expect_response=False)
     except Exception as exc:
         logging.debug("MCP initialized notification ignored: %s", exc)
+
+    def call_tool(self, name: str, arguments: Dict[str, Any]) -> Any:
+        payload = {
+            "jsonrpc": "2.0",
+            "id": self._next_id(),
+            "method": "tools/call",
+            "params": {"name": name, "arguments": arguments},
+        }
+        response = self._post_jsonrpc(payload, expect_response=True)
+        result = response.get("result", response) if isinstance(response, dict) else response
+        return unwrap_mcp_tool_result(result)
+
+
+def unwrap_mcp_tool_result(result: Any) -> Any:
+    if isinstance(result, str):
+        parsed = parse_json_loose(result)
+        if parsed is result:
+            return result
+        return unwrap_mcp_tool_result(parsed)
+
+    if isinstance(result, dict):
+        if result.get("isError"):
+            content = result.get("content", [])
+            if isinstance(content, list):
+                text = "\n".join(
+                    item.get("text", "") for item in content if isinstance(item, dict)
+                )
+                raise RuntimeError(text or f"MCP tool error: {result}")
+            raise RuntimeError(f"MCP tool error: {result}")
+
+        if "structuredContent" in result:
+            return unwrap_mcp_tool_result(result["structuredContent"])
+        if "result" in result:
+            return unwrap_mcp_tool_result(result["result"])
+
+        if "content" in result and isinstance(result["content"], list):
+            text_parts = []
+            for item in result["content"]:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    text_parts.append(item.get("text", ""))
+                elif isinstance(item, str):
+                    text_parts.append(item)
+            joined = "\n".join(text_parts).strip()
+            return unwrap_mcp_tool_result(joined)
+
+    return result
