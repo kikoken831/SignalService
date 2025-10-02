@@ -236,3 +236,17 @@ def unwrap_mcp_tool_result(result: Any) -> Any:
             return unwrap_mcp_tool_result(joined)
 
     return result
+
+
+from dataclasses import dataclass
+
+@dataclass
+class Quote:
+    symbol: str
+    bid: float
+    ask: float
+    source: str
+
+    @property
+    def mid(self) -> float:
+        return (self.bid + self.ask) / 2
