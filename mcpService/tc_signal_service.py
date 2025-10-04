@@ -250,3 +250,30 @@ class Quote:
     @property
     def mid(self) -> float:
         return (self.bid + self.ask) / 2
+
+
+class QuoteProvider:
+    def get_quote(self, symbol: str) -> Quote:
+        provider = os.getenv("QUOTE_PROVIDER", "manual").lower().strip()
+        if provider == "manual":
+            return self._get_quote_manual(symbol)
+        raise RuntimeError(f"Unsupported QUOTE_PROVIDER={provider}")
+
+    def _get_quote_manual(self, symbol: str) -> Quote:
+        symbol = normalize_symbol(symbol)
+        env_name = f"QUOTE_{symbol}"
+        value = os.getenv(env_name)
+        if not value:
+            raise RuntimeError(
+                f"Missing manual quote for {symbol}. "
+                f"Set {env_name}, for example: {env_name}=161.50"
+            )
+        mid = float(value)
+        spread_pips = float(os.getenv("MANUAL_SPREAD_PIPS", "1.0"))
+        half_spread = (spread_pips * pip_size(symbol)) / 2
+        return Quote(
+            symbol=symbol,
+            bid=mid - half_spread,
+            ask=mid + half_spread,
+            source="manual",
+        )
