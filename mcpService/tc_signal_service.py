@@ -277,3 +277,29 @@ class QuoteProvider:
             ask=mid + half_spread,
             source="manual",
         )
+
+def _get_quote_mt5(self, symbol: str) -> Quote:
+    symbol = normalize_symbol(symbol)
+    try:
+        import MetaTrader5 as mt5  # type: ignore
+    except ImportError as exc:
+        raise RuntimeError("MetaTrader5 package not installed.") from exc
+
+    mt5_symbol = os.getenv(f"MT5_SYMBOL_{symbol}", symbol)
+
+    if not mt5.initialize():
+        raise RuntimeError(f"MT5 initialize failed: {mt5.last_error()}")
+    try:
+        if not mt5.symbol_select(mt5_symbol, True):
+            raise RuntimeError(f"MT5 could not select {mt5_symbol}")
+        tick = mt5.symbol_info_tick(mt5_symbol)
+        if tick is None:
+            raise RuntimeError(f"No MT5 tick for {mt5_symbol}")
+        return Quote(
+            symbol=symbol,
+            bid=float(tick.bid),
+            ask=float(tick.ask),
+            source=f"mt5:{mt5_symbol}",
+        )
+    finally:
+        mt5.shutdown()
