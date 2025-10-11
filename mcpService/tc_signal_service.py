@@ -283,7 +283,7 @@ def _get_quote_mt5(self, symbol: str) -> Quote:
     try:
         import MetaTrader5 as mt5  # type: ignore
     except ImportError as exc:
-        raise RuntimeError("MetaTrader5 package not installed.") from exc
+        raise RuntimeError("MetaTrader5 package not installed. Run: pip install MetaTrader5") from exc
 
     mt5_symbol = os.getenv(f"MT5_SYMBOL_{symbol}", symbol)
 
@@ -291,10 +291,10 @@ def _get_quote_mt5(self, symbol: str) -> Quote:
         raise RuntimeError(f"MT5 initialize failed: {mt5.last_error()}")
     try:
         if not mt5.symbol_select(mt5_symbol, True):
-            raise RuntimeError(f"MT5 could not select {mt5_symbol}")
+            raise RuntimeError(f"MT5 could not select symbol {mt5_symbol}: {mt5.last_error()}")
         tick = mt5.symbol_info_tick(mt5_symbol)
         if tick is None:
-            raise RuntimeError(f"No MT5 tick for {mt5_symbol}")
+            raise RuntimeError(f"No MT5 tick for {mt5_symbol}: {mt5.last_error()}")
         return Quote(
             symbol=symbol,
             bid=float(tick.bid),
