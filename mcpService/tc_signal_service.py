@@ -26,6 +26,19 @@ TC_MCP_URL = "https://api.tradingcentral.com/mcp/v1"
 TC_MCP_TOKEN = "PASTE_YOUR_TOKEN_HERE"
 MCP_PROTOCOL_VERSION = "2025-03-26"
 
+TC_TOOL_GET_FOREX_PAIRS = "get_forex_pairs"
+TC_TOOL_GET_CURRENCY_VOLATILITY = "get_currency_volatility"
+
+DEFAULT_WATCHLIST = [
+    "USDJPY",
+    "EURUSD",
+    "GBPUSD",
+    "AUDUSD",
+    "NZDUSD",
+    "USDCAD",
+    "USDCHF",
+]
+
 
 def normalize_symbol(symbol: str) -> str:
     return symbol.replace("/", "").replace("-", "").replace("_", "").upper().strip()
