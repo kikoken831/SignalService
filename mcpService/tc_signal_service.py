@@ -319,3 +319,24 @@ def _get_quote_mt5(self, symbol: str) -> Quote:
         )
     finally:
         mt5.shutdown()
+
+
+@dataclass
+class ForexPair:
+    symbol_slash: str
+    symbol: str
+    instrument_id: str
+    match_id: str
+    precision: int
+
+
+@dataclass
+class CandidateScore:
+    pair: ForexPair
+    direction: str
+    confidence: float
+    score: float
+    hourly_move_pips: float
+    hourly_true_range_pips: float
+    weekday_move_pips: float
+    rationale: str
