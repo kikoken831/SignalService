@@ -340,3 +340,48 @@ class CandidateScore:
     hourly_true_range_pips: float
     weekday_move_pips: float
     rationale: str
+
+
+class SignalEngine:
+    def __init__(self, mcp: MCPClient, quote_provider: QuoteProvider, lang: str = "en") -> None:
+        self.mcp = mcp
+        self.quote_provider = quote_provider
+        self.lang = lang
+
+    def discover_pairs(self, region_code: str = "US") -> Dict[str, ForexPair]:
+        raw = self.mcp.call_tool(
+            TC_TOOL_GET_FOREX_PAIRS,
+            {"region_code": region_code, "lang": self.lang},
+        )
+
+        logging.debug("RAW get_forex_pairs response: %s", json.dumps(raw, indent=2, default=str))
+
+        if isinstance(raw, dict):
+            pairs_raw = raw.get("forexPairs", [])
+        elif isinstance(raw, list):
+            pairs_raw = raw
+        else:
+            raise RuntimeError(f"Unexpected get_forex_pairs response: {raw}")
+
+        pairs: Dict[str, ForexPair] = {}
+
+        for item in pairs_raw:
+            if not isinstance(item, dict):
+                continue
+            symbol_slash = item.get("symbol")
+            if not symbol_slash:
+                continue
+            symbol = normalize_symbol(symbol_slash)
+            instrument_id = item.get("instrumentId") or item.get("matchId")
+            match_id = item.get("matchId") or f"{symbol_slash}:FOREX"
+            if not instrument_id:
+                continue
+            pairs[symbol] = ForexPair(
+                symbol_slash=symbol_slash,
+                symbol=symbol,
+                instrument_id=instrument_id,
+                match_id=match_id,
+                precision=int(item.get("precision") or price_precision(symbol)),
+            )
+
+        return pairs
