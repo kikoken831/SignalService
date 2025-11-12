@@ -385,3 +385,74 @@ class SignalEngine:
             )
 
         return pairs
+
+def score_pair(self, pair: ForexPair) -> CandidateScore:
+    volatility = self.mcp.call_tool(
+        TC_TOOL_GET_CURRENCY_VOLATILITY,
+        {"pair_id": pair.instrument_id, "lang": self.lang},
+    )
+
+    if not isinstance(volatility, dict):
+        raise RuntimeError(f"Unexpected volatility response: {volatility}")
+
+    hourly = volatility.get("hourlyVolatility", [])
+    weekday = volatility.get("weekdayVolatility", [])
+
+    if not hourly:
+        raise RuntimeError("No hourlyVolatility returned")
+
+    utc_now = datetime.now(timezone.utc)
+    hour_idx = min(utc_now.hour, len(hourly) - 1)
+
+    hour_now = hourly[hour_idx]
+    hour_next = hourly[(hour_idx + 1) % len(hourly)] if len(hourly) > 1 else hour_now
+
+    hourly_move = mean([
+        float(hour_now.get("priceMovement", 0.0)),
+        float(hour_next.get("priceMovement", 0.0)),
+    ])
+
+    hourly_true_range = mean([
+        abs(float(hour_now.get("trueRange", 0.0))),
+        abs(float(hour_next.get("trueRange", 0.0))),
+    ])
+
+    weekday_move = 0.0
+    if weekday:
+        weekday_idx = min(utc_now.weekday(), len(weekday) - 1)
+        weekday_move = float(weekday[weekday_idx].get("priceMovement", 0.0))
+
+    combined_bias = hourly_move + (0.25 * weekday_move)
+    direction = "BUY" if combined_bias >= 0 else "SELL"
+
+    directional_strength = abs(combined_bias) / max(hourly_true_range, 1.0)
+    volatility_strength = min(hourly_true_range / 30.0, 1.0)
+
+    alignment_bonus = 0.0
+    if same_sign(combined_bias, weekday_move):
+        alignment_bonus += 0.05
+
+    confidence = 0.52
+    confidence += min(directional_strength * 0.25, 0.20)
+    confidence += volatility_strength * 0.08
+    confidence += alignment_bonus
+    confidence = clamp(confidence, 0.50, 0.85)
+
+    score = directional_strength + (volatility_strength * 0.25) + alignment_bonus
+
+    rationale = "; ".join([
+        f"{pair.symbol} selected from Trading Central volatility scan",
+        f"{direction.lower()} bias based on hourly movement of {hourly_move:.2f} pips",
+        f"expected hourly true range around {hourly_true_range:.2f} pips",
+    ])
+
+    return CandidateScore(
+        pair=pair,
+        direction=direction,
+        confidence=confidence,
+        score=score,
+        hourly_move_pips=hourly_move,
+        hourly_true_range_pips=hourly_true_range,
+        weekday_move_pips=weekday_move,
+        rationale=rationale,
+    )
