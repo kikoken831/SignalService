@@ -456,3 +456,26 @@ def score_pair(self, pair: ForexPair) -> CandidateScore:
         weekday_move_pips=weekday_move,
         rationale=rationale,
     )
+
+def build_risk_levels(
+    self, symbol: str, direction: str, entry: float, true_range_pips: float,
+) -> Tuple[float, float]:
+    symbol = normalize_symbol(symbol)
+    pip = pip_size(symbol)
+    precision = price_precision(symbol)
+
+    min_stop_pips = float(os.getenv("MIN_STOP_PIPS", "15"))
+    max_stop_pips = float(os.getenv("MAX_STOP_PIPS", "100"))
+    rr = float(os.getenv("RISK_REWARD_RATIO", "1.8"))
+
+    stop_pips = clamp(true_range_pips * 1.2, min_stop_pips, max_stop_pips)
+    take_profit_pips = stop_pips * rr
+
+    if direction == "BUY":
+        stop_loss = entry - (stop_pips * pip)
+        take_profit = entry + (take_profit_pips * pip)
+    else:
+        stop_loss = entry + (stop_pips * pip)
+        take_profit = entry - (take_profit_pips * pip)
+
+    return round(stop_loss, precision), round(take_profit, precision)
