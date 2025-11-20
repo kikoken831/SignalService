@@ -479,3 +479,78 @@ def build_risk_levels(
         take_profit = entry - (take_profit_pips * pip)
 
     return round(stop_loss, precision), round(take_profit, precision)
+
+def generate_signal(self, watchlist: List[str]) -> Dict[str, Any]:
+    region_code = os.getenv("TC_REGION_CODE", "US")
+    pairs = self.discover_pairs(region_code=region_code)
+
+    selected_pairs: List[ForexPair] = []
+    for symbol in watchlist:
+        normalized = normalize_symbol(symbol)
+        if normalized in pairs:
+            selected_pairs.append(pairs[normalized])
+        else:
+            logging.warning("Watchlist pair not found from TC MCP: %s", symbol)
+
+    if not selected_pairs:
+        raise RuntimeError("No watchlist pairs found from Trading Central MCP")
+
+    candidates: List[CandidateScore] = []
+    for pair in selected_pairs:
+        try:
+            candidate = self.score_pair(pair)
+            candidates.append(candidate)
+            logging.info(
+                "Candidate %s %s confidence=%.2f score=%.4f",
+                pair.symbol, candidate.direction,
+                candidate.confidence, candidate.score,
+            )
+        except Exception as exc:
+            logging.warning("Skipping %s due to error: %s", pair.symbol, exc)
+
+    if not candidates:
+        raise RuntimeError("No valid candidates generated")
+
+    sorted_candidates = sorted(candidates, key=lambda c: c.score, reverse=True)
+
+    selected_candidate = None
+    selected_quote = None
+
+    for candidate in sorted_candidates:
+        try:
+            selected_quote = self.quote_provider.get_quote(candidate.pair.symbol)
+            selected_candidate = candidate
+            break
+        except Exception as exc:
+            logging.warning("Could not quote %s, trying next: %s", candidate.pair.symbol, exc)
+
+    if selected_candidate is None or selected_quote is None:
+        raise RuntimeError("No candidate had an available quote.")
+
+    best = selected_candidate
+    quote = selected_quote
+    entry = quote.ask if best.direction == "BUY" else quote.bid
+
+    stop_loss, take_profit = self.build_risk_levels(
+        symbol=best.pair.symbol,
+        direction=best.direction,
+        entry=entry,
+        true_range_pips=best.hourly_true_range_pips,
+    )
+
+    generated_at = now_sgt()
+    valid_until = generated_at + timedelta(hours=1)
+
+    return {
+        "signal_id": f"tc-{best.pair.symbol.lower()}-{generated_at:%Y%m%d-%H%M}",
+        "generated_at": generated_at.isoformat(),
+        "valid_until": valid_until.isoformat(),
+        "symbol": best.pair.symbol,
+        "direction": best.direction,
+        "confidence": round(best.confidence, 2),
+        "entry_type": "market",
+        "stop_loss": stop_loss,
+        "take_profit": take_profit,
+        "source": "Trading Central MCP - Forex Volatility",
+        "rationale": best.rationale,
+    }
