@@ -554,3 +554,43 @@ def generate_signal(self, watchlist: List[str]) -> Dict[str, Any]:
         "source": "Trading Central MCP - Forex Volatility",
         "rationale": best.rationale,
     }
+
+
+def get_mcp_token() -> str:
+    env_token = os.getenv("TC_MCP_TOKEN", "").strip()
+    if env_token:
+        return env_token
+    token = TC_MCP_TOKEN.strip()
+    if not token or token == "PASTE_YOUR_TOKEN_HERE":
+        raise RuntimeError("Missing Trading Central MCP token. Set TC_MCP_TOKEN.")
+    if token.lower().startswith("bearer "):
+        token = token[7:].strip()
+    return token
+
+
+def run_once(output_path: Path, watchlist: List[str]) -> Dict[str, Any]:
+    mcp_url = os.getenv("TC_MCP_URL", TC_MCP_URL).strip()
+    token = get_mcp_token()
+
+    mcp = MCPClient(
+        base_url=mcp_url, token=token,
+        timeout=int(os.getenv("TC_MCP_TIMEOUT_SECONDS", "30")),
+    )
+    mcp.initialize()
+
+    engine = SignalEngine(
+        mcp=mcp,
+        quote_provider=QuoteProvider(),
+        lang=os.getenv("TC_LANG", "en"),
+    )
+
+    signal = engine.generate_signal(watchlist=watchlist)
+    atomic_write_json(output_path, signal)
+    print(json.dumps(signal, indent=2))
+    return signal
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    watchlist = [normalize_symbol(s) for s in DEFAULT_WATCHLIST]
+    run_once(output_path=Path("latest_signal.json"), watchlist=watchlist)
