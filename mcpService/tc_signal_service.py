@@ -12,6 +12,7 @@ Transport:
 
 from __future__ import annotations
 
+import argparse
 import json
 import time
 import math
@@ -591,7 +592,44 @@ def run_once(output_path: Path, watchlist: List[str]) -> Dict[str, Any]:
     return signal
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Trading Central MCP hourly FX signal service")
+    parser.add_argument("--once", action="store_true", help="Run once and exit")
+    parser.add_argument("--interval", type=int, default=3600, help="Loop interval in seconds")
+    parser.add_argument("--output", default="latest_signal.json", help="Output JSON file path")
+    parser.add_argument(
+        "--watchlist", default=",".join(DEFAULT_WATCHLIST),
+        help="Comma-separated FX symbols, e.g. USDJPY,EURUSD,GBPUSD",
+    )
+    parser.add_argument("--align-to-hour", action="store_true", help="Sleep until next top of hour")
+    parser.add_argument("--log-level", default="INFO", help="DEBUG, INFO, WARNING, ERROR")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    logging.basicConfig(
+        level=getattr(logging, args.log_level.upper(), logging.INFO),
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
+    output_path = Path(args.output)
+    watchlist = [normalize_symbol(x.strip()) for x in args.watchlist.split(",") if x.strip()]
+
+    while True:
+        try:
+            logging.info("Generating Trading Central MCP signal")
+            run_once(output_path=output_path, watchlist=watchlist)
+            logging.info("Signal written to %s", output_path)
+        except Exception as exc:
+            logging.exception("Signal generation failed: %s", exc)
+
+        if args.once:
+            break
+
+        sleep_until_next_run(interval_seconds=args.interval, align_to_hour=args.align_to_hour)
+
+    return 0
+
+
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    watchlist = [normalize_symbol(s) for s in DEFAULT_WATCHLIST]
-    run_once(output_path=Path("latest_signal.json"), watchlist=watchlist)
+    raise SystemExit(main())
