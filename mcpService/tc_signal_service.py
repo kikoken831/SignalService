@@ -527,7 +527,10 @@ def generate_signal(self, watchlist: List[str]) -> Dict[str, Any]:
             logging.warning("Could not quote %s, trying next: %s", candidate.pair.symbol, exc)
 
     if selected_candidate is None or selected_quote is None:
-        raise RuntimeError("No candidate had an available quote.")
+        raise RuntimeError(
+                "No candidate had an available quote. "
+                "If using manual mode, set QUOTE_USDJPY / QUOTE_EURUSD / etc."
+            )
 
     best = selected_candidate
     quote = selected_quote
