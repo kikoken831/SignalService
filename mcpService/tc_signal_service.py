@@ -148,7 +148,10 @@ class MCPClient:
         elif existing_token:
             pass
         else:
-            raise RuntimeError("Missing Trading Central MCP token. Set TC_MCP_TOKEN.")
+            raise RuntimeError(
+                "Missing Trading Central MCP token. "
+                "Set environment variable TC_MCP_TOKEN."
+            )
 
         new_query = urllib.parse.urlencode(query)
         return urllib.parse.urlunparse(
