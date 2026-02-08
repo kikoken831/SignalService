@@ -570,7 +570,10 @@ def get_mcp_token() -> str:
         return env_token
     token = TC_MCP_TOKEN.strip()
     if not token or token == "PASTE_YOUR_TOKEN_HERE":
-        raise RuntimeError("Missing Trading Central MCP token. Set TC_MCP_TOKEN.")
+        raise RuntimeError(
+                "Missing Trading Central MCP token. "
+                "Set environment variable TC_MCP_TOKEN."
+            )
     if token.lower().startswith("bearer "):
         token = token[7:].strip()
     return token
