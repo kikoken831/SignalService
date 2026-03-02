@@ -32,6 +32,7 @@ MCP_PROTOCOL_VERSION = "2025-03-26"
 
 TC_TOOL_GET_FOREX_PAIRS = "get_forex_pairs"
 TC_TOOL_GET_CURRENCY_VOLATILITY = "get_currency_volatility"
+    TC_TOOL_GET_EVENT_VOLATILITY = "get_event_volatility"
 
 DEFAULT_WATCHLIST = [
     "USDJPY",
