@@ -1,0 +1,13 @@
+{
+  "signal_id": "tc-usdjpy-20260624-2351",
+  "generated_at": "2026-06-24T23:51:24+08:00",
+  "valid_until": "2026-06-25T00:51:24+08:00",
+  "symbol": "USDJPY",
+  "direction": "BUY",
+  "confidence": 0.77,
+  "entry_type": "market",
+  "stop_loss": 161.20,
+  "take_profit": 162.05,
+  "source": "Trading Central MCP - Forex Volatility",
+  "rationale": "USDJPY selected from Trading Central volatility scan; buy bias based on hourly movement of -0.24 pips; expected hourly true range around 25.17 pips; event-volatility bias of 9.88 pips"
+}
