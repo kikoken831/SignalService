@@ -29,3 +29,6 @@ Thumbs.db
 
 # Docker
 mt5_data/
+
+# Signal output
+mcpService/latest_signal.json
